@@ -1,0 +1,36 @@
+# Personal rules for the ClearURLs add-on, served from this branch:
+#   rule URL: https://raw.githubusercontent.com/yjlin0224/ClearURLs-Rules/refs/heads/yjlin0224/data.minify.json
+#   hash URL: https://raw.githubusercontent.com/yjlin0224/ClearURLs-Rules/refs/heads/yjlin0224/rules.minify.hash
+# ClearURLs only takes the rules when their SHA-256 matches the hash file, so both are built
+# here and committed together, the same way deploy.yml builds them for the official site.
+# To pick up the official rules: git merge upstream/master (https://github.com/ClearURLs/Rules).
+name: Build personal rules
+on:
+  push:
+    branches:
+      - yjlin0224
+    paths:
+      - data.min.json
+      - build_tools/minifyDataJSON.js
+      - .github/workflows/personal-rules.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Build
+        run: |
+          node build_tools/minifyDataJSON.js "data.min.json" "data.minify.json"
+          sha256sum data.minify.json | awk '{print $1}' > rules.minify.hash
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data.minify.json rules.minify.hash
+          git diff --cached --quiet || git commit -m "Build data.minify.json and rules.minify.hash"
+          git push
